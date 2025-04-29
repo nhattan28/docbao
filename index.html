@@ -101,11 +101,9 @@
   <input id="webhook" type="hidden" />
 </form>
 
-    <div id="newsContainer">⏳ Đang tải bài viết mới nhất</div>
+    <div id="newsContainer">⏳ Đang tải bài viết mới nhất...</div>
     <div id="countdown">Tự động tải lại sau: 30:00</div>
     <div class="nav-buttons">
-      <button onclick="prevArticle()">Trước</button>
-      <button onclick="nextArticle()">Sau</button>
     </div>
   </div>
 
@@ -128,17 +126,19 @@
       return new Intl.DateTimeFormat('vi-VN', options).format(d);
     }
 
-    function updateCountdown() {
-      const mins = String(Math.floor(countdown / 60)).padStart(2, '0');
-      const secs = String(countdown % 60).padStart(2, '0');
-      document.getElementById("countdown").textContent = `Tự động tải lại sau: ${mins}:${secs}`;
-      countdown--;
-      if (countdown < 0) {
-        countdown = 1800;
-        const url = localStorage.getItem("newsWebhook");
-        if (url) loadArticles(url);
-      }
-    }
+function updateCountdown() {
+  if (countdown <= 0) {
+    document.getElementById("countdown").textContent = "🔄 Đang tải lại...";
+    loadArticles();
+    countdown = 1800;
+    return;
+  }
+  const mins = String(Math.floor(countdown / 60)).padStart(2, '0');
+  const secs = String(countdown % 60).padStart(2, '0');
+  document.getElementById("countdown").textContent = `Tự động tải lại sau: ${mins}:${secs}`;
+  countdown--;
+}
+
 
     function saveWebhook(event) {
       event.preventDefault();
@@ -158,30 +158,34 @@
         </div>`;
     }
 
-    function loadArticles(url) {
-      fetch(url)
-        .then(res => res.json())
-        .then(data => {
-          articles = data;
-          currentIndex = 0;
-          displayArticle(currentIndex);
-        })
-        .catch(err => {
-          document.getElementById("newsContainer").innerHTML = `<p style="color:red">❌ Lỗi khi tải: ${err.message}</p>`;
-        });
-    }
+function loadArticles() {
+  fetch("https://script.google.com/macros/s/AKfycbzCPIQa9FR-SUxMdlEslE8GVzsdnYhcwMVY1HUgT-XKzdTXMnUMu5cNa-RVmffEJUsl/exec")
+    .then(response => response.json())
+    .then(data => {
+      if (Array.isArray(data)) {
+        articles = data;
+        currentIndex = 0;
+        displayArticle(currentIndex);
+      } else {
+        console.error("Dữ liệu không đúng định dạng:", data);
+      }
+    })
+    .catch(error => {
+      console.error("Lỗi khi tải bài viết:", error);
+    });
+}
 
-    function prevArticle() {
-      if (articles.length === 0) return;
-      currentIndex = (currentIndex - 1 + articles.length) % articles.length;
-      displayArticle(currentIndex);
-    }
+function prevArticle() {
+  if (articles.length === 0) return;
+  currentIndex = (currentIndex - 1 + articles.length) % articles.length;
+  displayArticle(currentIndex);
+}
 
-    function nextArticle() {
-      if (articles.length === 0) return;
-      currentIndex = (currentIndex + 1) % articles.length;
-      displayArticle(currentIndex);
-    }
+function nextArticle() {
+  if (articles.length === 0) return;
+  currentIndex = (currentIndex + 1) % articles.length;
+  displayArticle(currentIndex);
+}
 
 function updateRealTime() {
   const now = new Date();
@@ -207,6 +211,7 @@ window.addEventListener("load", () => {
   setInterval(updateRealTime, 1000);
   setInterval(updateCountdown, 1000);
 });
+loadArticles();
 
   </script>
 </body>
