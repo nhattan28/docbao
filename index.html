@@ -60,12 +60,12 @@
   <header id="headerTime">Báo điện tử VnExpress</header>
   <div class="container">
     <div id="newsContainer">⏳ Đang tải bài viết mới nhất...</div>
-    <div id="countdown">Tự động tải lại sau: 30:00</div>
+    <div id="countdown">Tự động tải lại sau: 15:00</div>
   </div>
 
   <script>
     const DEFAULT_URL = "https://script.google.com/macros/s/AKfycbzCPIQa9FR-SUxMdlEslE8GVzsdnYhcwMVY1HUgT-XKzdTXMnUMu5cNa-RVmffEJUsl/exec";
-    let articles = [], currentIndex = 0, countdown = 1800;
+    let articles = [], currentIndex = 0, countdown = 900;
 
     const escapeHTML = str =>
       str.replace(/[&<>'"]/g, ch => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;'}[ch]));
