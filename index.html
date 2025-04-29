@@ -1,196 +1,151 @@
 <!DOCTYPE html>
 <html lang="vi">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>📰 Đọc báo tổng hợp</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Tin tức tổng hợp</title>
   <style>
     body {
       font-family: Arial, sans-serif;
-      margin: 0; padding: 0;
-      background: #f9f9f9;
-      color: #333;
+      background: #f0f2f5;
+      margin: 0;
+      padding: 0;
     }
+
     header {
-      background: #1e88e5;
+      background-color: #1d4ed8;
       color: white;
-      padding: 1rem;
+      padding: 1.2rem;
       text-align: center;
+      font-size: 1.5rem;
+      font-weight: bold;
     }
-    .buttons {
-      display: flex;
-      justify-content: center;
-      flex-wrap: wrap;
-      gap: 10px;
-      margin: 10px;
-    }
-    .buttons button {
-      padding: 10px 20px;
-      border: none;
-      background: #0288d1;
-      color: white;
-      border-radius: 6px;
-      cursor: pointer;
-      transition: background 0.3s;
-    }
-    .buttons button:hover {
-      background: #01579b;
-    }
-    .countdown {
-      text-align: center;
-      font-size: 14px;
-      margin: 5px;
-      color: #777;
-    }
-    .article {
-      max-width: 700px;
-      margin: auto;
-      background: white;
-      padding: 20px;
-      border-radius: 8px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-      animation: fadeIn 0.4s ease;
-    }
-    .article img {
-      max-width: 100%;
-      height: auto;
-      margin: 10px 0;
-      border-radius: 6px;
-    }
-    .article p {
-      line-height: 1.6;
-      margin-bottom: 12px;
-    }
-    .next-btn {
-      display: block;
+
+    .container {
+      max-width: 900px;
       margin: 20px auto;
-      padding: 10px 16px;
-      background: #43a047;
+      padding: 1rem;
+    }
+
+    .webhook-form {
+      margin-bottom: 1rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+
+    .webhook-form input {
+      padding: 0.5rem;
+      font-size: 1rem;
+      border-radius: 6px;
+      border: 1px solid #ccc;
+    }
+
+    .webhook-form button {
+      padding: 0.5rem;
+      font-size: 1rem;
+      background-color: #2563eb;
       color: white;
       border: none;
-      border-radius: 5px;
+      border-radius: 6px;
       cursor: pointer;
-      transition: background 0.3s;
     }
-    .next-btn:hover {
-      background: #2e7d32;
+
+    .webhook-form button:hover {
+      background-color: #1e40af;
     }
-    @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(10px); }
-      to   { opacity: 1; transform: translateY(0); }
+
+    .article {
+      background: white;
+      margin-bottom: 1rem;
+      padding: 1rem;
+      border-radius: 10px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    }
+
+    .article h2 {
+      font-size: 1.2rem;
+      margin-bottom: 0.3rem;
+    }
+
+    .article p {
+      white-space: pre-line;
+    }
+
+    .article small {
+      color: #888;
+      display: block;
+      margin-bottom: 0.5rem;
+    }
+
+    @media (max-width: 600px) {
+      header {
+        font-size: 1.2rem;
+      }
     }
   </style>
 </head>
 <body>
-
-  <header>
-    <h1>🗞️ Tin tức tổng hợp</h1>
-    <p class="countdown">Tự động làm mới sau: <span id="timer">--:--</span></p>
-  </header>
-
-  <div class="buttons">
-    <button onclick="setSource('vnexpress')">VnExpress</button>
-    <button onclick="setSource('tuoitre')">Tuổi Trẻ</button>
-    <button onclick="setSource('thanhnien')">Thanh Niên</button>
+  <header>Tin tức tổng hợp</header>
+  <div class="container">
+    <form class="webhook-form" onsubmit="saveWebhook(event)">
+      <label for="webhook">Nhập webhook Google Apps Script:</label>
+      <input type="url" id="webhook" placeholder="https://script.google.com/macros/s/AKfycbzCPIQa9FR-SUxMdlEslE8GVzsdnYhcwMVY1HUgT-XKzdTXMnUMu5cNa-RVmffEJUsl/exec" required>
+      <button type="submit">Lưu và tải bài viết</button>
+    </form>
+    <div id="newsContainer">Vui lòng nhập webhook để xem tin tức.</div>
   </div>
 
-  <div id="news-content">Đang tải...</div>
-  <button class="next-btn" onclick="loadNext()">▶️ Xem bài tiếp theo</button>
-
   <script>
-    const sources = {
-      vnexpress: "https://vnexpress.net/rss/tin-moi-nhat.rss",
-      tuoitre: "https://tuoitre.vn/rss/tin-moi-nhat.rss",
-      thanhnien: "https://thanhnien.vn/rss/home.rss"
-    };
-
-    const webAppUrl = "https://script.google.com/macros/s/AKfycbzCPIQa9FR-SUxMdlEslE8GVzsdnYhcwMVY1HUgT-XKzdTXMnUMu5cNa-RVmffEJUsl/exec";
-
-    let currentSource = "vnexpress";
-    let articles = [];
-    let index = 0;
-    let countdown = 1800; // 30 phút
-
-    async function setSource(sourceKey) {
-      currentSource = sourceKey;
-      index = 0;
-      await fetchRSS();
-      showArticle();
-      resetTimer();
+    function escapeHTML(str) {
+      return str.replace(/[&<>'"]/g, tag => ({
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        "'": '&#39;',
+        '"': '&quot;'
+      }[tag]));
     }
 
-    async function fetchRSS() {
-      const rssUrl = sources[currentSource];
-      try {
-        const res = await fetch("https://api.rss2json.com/v1/api.json?rss_url=" + encodeURIComponent(rssUrl));
-        const data = await res.json();
+    function saveWebhook(event) {
+      event.preventDefault();
+      const url = document.getElementById("webhook").value.trim();
+      localStorage.setItem("newsWebhook", url);
+      loadArticles(url);
+    }
 
-        if (!data.items || data.items.length === 0) {
-          throw new Error("Không có dữ liệu.");
-        }
+    function loadArticles(url) {
+      const container = document.getElementById("newsContainer");
+      container.innerHTML = "Đang tải...";
 
-        articles = data.items;
-      } catch (err) {
-        document.getElementById("news-content").innerHTML = `
-          <div class="article">
-            <p>❌ Không tải được dữ liệu từ nguồn "${currentSource}".</p>
-          </div>`;
-        articles = [];
+      fetch(url)
+        .then(res => res.json())
+        .then(articles => {
+          container.innerHTML = '';
+          articles.forEach(article => {
+            const div = document.createElement("div");
+            div.className = "article";
+            div.innerHTML = `
+              <h2><a href="${article.link}" target="_blank">${escapeHTML(article.title)}</a></h2>
+              <small>${article.pubDate}</small>
+              <p>${escapeHTML(article.content)}</p>
+            `;
+            container.appendChild(div);
+          });
+        })
+        .catch(err => {
+          container.innerHTML = `<p style="color:red">❌ Lỗi khi tải dữ liệu: ${err.message}</p>`;
+        });
+    }
+
+    // Auto-load nếu đã lưu webhook trước đó
+    window.addEventListener("load", () => {
+      const saved = localStorage.getItem("newsWebhook");
+      if (saved) {
+        document.getElementById("webhook").value = saved;
+        loadArticles(saved);
       }
-    }
-
-    async function showArticle() {
-      if (articles.length === 0) return;
-
-      const article = articles[index];
-      if (!article) return;
-
-      const url = article.link;
-      let content = '<p>❌ Không tìm thấy nội dung bài viết.</p>';
-
-      try {
-        const res = await fetch(`${webAppUrl}?url=${encodeURIComponent(url)}`);
-        content = await res.text();
-      } catch (err) {
-        content = '<p>❌ Không thể tải nội dung từ máy chủ.</p>';
-      }
-
-      document.getElementById("news-content").innerHTML = `
-        <div class="article">
-          <h2>${article.title}</h2>
-          <p><em>${new Date(article.pubDate).toLocaleString("vi-VN")}</em></p>
-          ${article.thumbnail ? `<img src="${article.thumbnail}" alt="Thumbnail" />` : ""}
-          ${content}
-          <p><a href="${url}" target="_blank">🔗 Đọc bài gốc</a></p>
-        </div>
-      `;
-    }
-
-    function loadNext() {
-      if (articles.length === 0) return;
-      index = (index + 1) % articles.length;
-      showArticle();
-    }
-
-    function resetTimer() {
-      countdown = 1800;
-    }
-
-    function startTimer() {
-      setInterval(() => {
-        countdown--;
-        const mins = String(Math.floor(countdown / 60)).padStart(2, '0');
-        const secs = String(countdown % 60).padStart(2, '0');
-        document.getElementById("timer").innerText = `${mins}:${secs}`;
-        if (countdown <= 0) {
-          setSource(currentSource);
-        }
-      }, 1000);
-    }
-
-    setSource("vnexpress");
-    startTimer();
+    });
   </script>
-
 </body>
 </html>
