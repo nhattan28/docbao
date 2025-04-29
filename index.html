@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Đọc báo tổng hợp</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: #f5f5f5;
+      margin: 0;
+      padding: 20px;
+      text-align: center;
+    }
+
+    h1 {
+      color: #333;
+      margin-bottom: 10px;
+    }
+
+    .btn-group {
+      display: flex;
+      justify-content: center;
+      flex-wrap: wrap;
+      margin-bottom: 20px;
+      gap: 10px;
+    }
+
+    .btn {
+      padding: 10px 15px;
+      border: none;
+      background-color: #3498db;
+      color: white;
+      border-radius: 6px;
+      font-size: 15px;
+      cursor: pointer;
+    }
+
+    .btn.active {
+      background-color: #2c3e50;
+    }
+
+    .news-item {
+      background: white;
+      max-width: 700px;
+      margin: 0 auto;
+      padding: 20px;
+      border-radius: 12px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+      text-align: left;
+      opacity: 0;
+      transform: translateY(10px);
+      transition: all 0.5s ease;
+    }
+
+    .news-item.show {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .news-item img {
+      max-width: 100%;
+      border-radius: 8px;
+      margin-bottom: 15px;
+    }
+
+    .news-item h2 {
+      font-size: 20px;
+      margin-bottom: 15px;
+    }
+
+    .news-item p {
+      font-size: 16px;
+      line-height: 1.6;
+      color: #444;
+    }
+
+    .news-link {
+      margin-top: 20px;
+      display: block;
+      font-weight: bold;
+      color: #e74c3c;
+      text-decoration: none;
+    }
+
+    .news-link:hover {
+      text-decoration: underline;
+    }
+
+    #countdown {
+      margin-top: 20px;
+      font-size: 15px;
+      color: #666;
+    }
+
+    #nextBtn {
+      margin-top: 10px;
+      padding: 8px 14px;
+      font-size: 14px;
+      background-color: #2ecc71;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+
+    @media screen and (max-width: 768px) {
+      body {
+        padding: 10px;
+      }
+
+      .news-item {
+        padding: 15px;
+      }
+
+      .btn {
+        width: 100%;
+        font-size: 16px;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <h1>📰 Đọc báo tại web</h1>
+
+  <div class="btn-group">
+    <button class="btn active" data-source="vnexpress">VnExpress</button>
+    <button class="btn" data-source="tuoitre">Tuổi Trẻ</button>
+    <button class="btn" data-source="thanhnien">Thanh Niên</button>
+  </div>
+
+  <div id="news-container"></div>
+
+  <div id="countdown"></div>
+  <button id="nextBtn">Xem ngay bài tiếp theo</button>
+
+  <script>
+    const sources = {
+      vnexpress: 'https://vnexpress.net/rss/tin-moi-nhat.rss',
+      tuoitre: 'https://tuoitre.vn/rss/tin-moi-nhat.rss',
+      thanhnien: 'https://thanhnien.vn/rss/home.rss'
+    };
+
+    let currentSourceKey = 'vnexpress';
+    let refreshTime = 30 * 60; // 30 phút
+    let countdown = refreshTime;
+    let countdownInterval;
+    let currentItemIndex = 0;
+    let currentItems = [];
+
+    async function fetchRSS(sourceKey) {
+      const apiUrl = 'https://api.rss2json.com/v1/api.json?rss_url=' + encodeURIComponent(sources[sourceKey]);
+
+      try {
+        const res = await fetch(apiUrl);
+        const data = await res.json();
+        currentItems = data.items;
+        currentItemIndex = 0;
+        showItem();
+      } catch (err) {
+        document.getElementById('news-container').innerHTML = '<p>Lỗi tải bài báo. Vui lòng thử lại.</p>';
+      }
+    }
+
+    function showItem() {
+      const item = currentItems[currentItemIndex];
+      if (!item) return;
+
+      const imgMatch = item.description.match(/<img[^>]+src="([^">]+)"/);
+      const imgTag = imgMatch ? `<img src="${imgMatch[1]}" alt="thumbnail">` : '';
+      const contentHtml = item.description.replace(/<img[^>]+>/g, ''); // giữ lại nội dung HTML
+
+      const container = document.getElementById('news-container');
+      container.innerHTML = `
+        <div class="news-item" id="news">
+          ${imgTag}
+          <h2>${item.title}</h2>
+          ${contentHtml}
+          <a class="news-link" href="${item.link}" target="_blank">🔗 Xem bài gốc tại trang báo</a>
+        </div>
+      `;
+
+      // hiệu ứng xuất hiện
+      setTimeout(() => {
+        document.getElementById('news').classList.add('show');
+      }, 100);
+    }
+
+    function updateCountdown() {
+      countdown--;
+      const min = Math.floor(countdown / 60);
+      const sec = countdown % 60;
+      document.getElementById("countdown").textContent =
+        `⏳ Tự động tải bài mới trong: ${min} phút ${sec < 10 ? '0' + sec : sec} giây`;
+
+      if (countdown <= 0) {
+        currentItemIndex = (currentItemIndex + 1) % currentItems.length;
+        showItem();
+        countdown = refreshTime;
+      }
+    }
+
+    function switchSource(sourceKey, btn) {
+      currentSourceKey = sourceKey;
+      document.querySelectorAll('.btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      fetchRSS(sourceKey);
+      countdown = refreshTime;
+    }
+
+    document.querySelectorAll('.btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        switchSource(btn.dataset.source, btn);
+      });
+    });
+
+    document.getElementById("nextBtn").addEventListener("click", () => {
+      currentItemIndex = (currentItemIndex + 1) % currentItems.length;
+      showItem();
+      countdown = refreshTime;
+    });
+
+    fetchRSS(currentSourceKey);
+    countdownInterval = setInterval(updateCountdown, 1000);
+  </script>
+
+</body>
+</html>
