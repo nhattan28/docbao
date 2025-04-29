@@ -27,34 +27,6 @@
       padding: 1rem;
     }
 
-    .webhook-form {
-      margin-bottom: 1rem;
-      display: flex;
-      flex-direction: column;
-      gap: 0.5rem;
-    }
-
-    .webhook-form input {
-      padding: 0.5rem;
-      font-size: 1rem;
-      border-radius: 6px;
-      border: 1px solid #ccc;
-    }
-
-    .webhook-form button {
-      padding: 0.5rem;
-      font-size: 1rem;
-      background-color: #2563eb;
-      color: white;
-      border: none;
-      border-radius: 6px;
-      cursor: pointer;
-    }
-
-    .webhook-form button:hover {
-      background-color: #1e40af;
-    }
-
     .article {
       background: white;
       margin-bottom: 1rem;
@@ -88,15 +60,12 @@
 <body>
   <header>Tin tức tổng hợp</header>
   <div class="container">
-    <form class="webhook-form" onsubmit="saveWebhook(event)">
-      <label for="webhook">Nhập webhook Google Apps Script:</label>
-      <input type="url" id="webhook" placeholder="https://script.google.com/macros/s/AKfycbzCPIQa9FR-SUxMdlEslE8GVzsdnYhcwMVY1HUgT-XKzdTXMnUMu5cNa-RVmffEJUsl/exec" required>
-      <button type="submit">Lưu và tải bài viết</button>
-    </form>
-    <div id="newsContainer">Vui lòng nhập webhook để xem tin tức.</div>
+    <div id="newsContainer">Đang tải tin tức...</div>
   </div>
 
   <script>
+    const webhookUrl = "https://script.google.com/macros/s/AKfycbzCPIQa9FR-SUxMdlEslE8GVzsdnYhcwMVY1HUgT-XKzdTXMnUMu5cNa-RVmffEJUsl/exec";
+
     function escapeHTML(str) {
       return str.replace(/[&<>'"]/g, tag => ({
         '&': '&amp;',
@@ -105,13 +74,6 @@
         "'": '&#39;',
         '"': '&quot;'
       }[tag]));
-    }
-
-    function saveWebhook(event) {
-      event.preventDefault();
-      const url = document.getElementById("webhook").value.trim();
-      localStorage.setItem("newsWebhook", url);
-      loadArticles(url);
     }
 
     function loadArticles(url) {
@@ -138,13 +100,8 @@
         });
     }
 
-    // Auto-load nếu đã lưu webhook trước đó
     window.addEventListener("load", () => {
-      const saved = localStorage.getItem("newsWebhook");
-      if (saved) {
-        document.getElementById("webhook").value = saved;
-        loadArticles(saved);
-      }
+      loadArticles(webhookUrl);
     });
   </script>
 </body>
