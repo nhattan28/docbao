@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Tin tức tổng hợp</title>
+  <title>Báo</title>
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -94,7 +94,7 @@
   </style>
 </head>
 <body>
-  <header id="headerTime">Tin tức tổng hợp</header>
+  <header id="headerTime">Báo điện tử VnExpress</header>
 
   <div class="container">
 <form class="webhook-form" style="display: none; height: 0; margin: 0; padding: 0;" onsubmit="saveWebhook(event)">
@@ -194,8 +194,6 @@ function updateRealTime() {
   document.getElementById("headerTime").textContent =
     "Tin tức tổng hợp - " + now.toLocaleString("vi-VN", options);
 }
-
-
     // Tự động tải nếu đã lưu webhook
 window.addEventListener("load", () => {
   let url = localStorage.getItem("newsWebhook");
