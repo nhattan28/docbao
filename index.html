@@ -11,7 +11,6 @@
       margin: 0;
       padding: 0;
     }
-
     header {
       background-color: #1d4ed8;
       color: white;
@@ -20,89 +19,198 @@
       font-size: 1.5rem;
       font-weight: bold;
     }
-
     .container {
-      max-width: 900px;
+      max-width: 800px;
       margin: 20px auto;
       padding: 1rem;
+      text-align: center;
     }
-
+    #countdown {
+      margin-top: 0.5rem;
+      font-size: 0.95rem;
+      color: #555;
+    }
+    .webhook-form {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+      margin-bottom: 1rem;
+    }
+    .webhook-form input {
+      padding: 0.5rem;
+      font-size: 1rem;
+      border-radius: 6px;
+      border: 1px solid #ccc;
+    }
+    .webhook-form button {
+      padding: 0.5rem;
+      font-size: 1rem;
+      background-color: #2563eb;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+    }
     .article {
       background: white;
-      margin-bottom: 1rem;
       padding: 1rem;
       border-radius: 10px;
       box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+      text-align: center;
     }
-
     .article h2 {
-      font-size: 1.2rem;
-      margin-bottom: 0.3rem;
-    }
-
-    .article p {
-      white-space: pre-line;
-    }
-
-    .article small {
-      color: #888;
-      display: block;
+      font-weight: bold;
+      font-size: 1.3rem;
       margin-bottom: 0.5rem;
     }
-
-    @media (max-width: 600px) {
-      header {
-        font-size: 1.2rem;
-      }
+    .article h2 a {
+      text-decoration: none;
+      color: black;
+    }
+    .article small {
+      display: block;
+      color: gray;
+      margin-bottom: 0.5rem;
+    }
+    .article p {
+      text-align: justify;
+      white-space: pre-line;
+    }
+    .nav-buttons {
+      display: flex;
+      justify-content: center;
+      gap: 1rem;
+      margin-top: 1rem;
+    }
+    .nav-buttons button {
+      padding: 0.4rem 1rem;
+      font-size: 1rem;
+      border: none;
+      background-color: #1d4ed8;
+      color: white;
+      border-radius: 6px;
+      cursor: pointer;
     }
   </style>
 </head>
 <body>
-  <header>Tin tức tổng hợp</header>
+  <header id="headerTime">Tin tức tổng hợp</header>
+
   <div class="container">
-    <div id="newsContainer">Đang tải tin tức...</div>
+<form class="webhook-form" style="display: none; height: 0; margin: 0; padding: 0;" onsubmit="saveWebhook(event)">
+  <input id="webhook" type="hidden" />
+</form>
+
+
+    <div id="countdown">Tự động tải lại sau: 30:00</div>
+    <div id="newsContainer"></div>
+    <div class="nav-buttons">
+      <button onclick="prevArticle()">Trước</button>
+      <button onclick="nextArticle()">Sau</button>
+    </div>
   </div>
 
   <script>
-    const webhookUrl = "https://script.google.com/macros/s/AKfycbzCPIQa9FR-SUxMdlEslE8GVzsdnYhcwMVY1HUgT-XKzdTXMnUMu5cNa-RVmffEJUsl/exec";
+    let articles = [];
+    let currentIndex = 0;
+    let countdown = 1800; // 30 phút = 1800 giây
 
     function escapeHTML(str) {
       return str.replace(/[&<>'"]/g, tag => ({
-        '&': '&amp;',
-        '<': '&lt;',
-        '>': '&gt;',
-        "'": '&#39;',
-        '"': '&quot;'
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;'
       }[tag]));
     }
 
-    function loadArticles(url) {
-      const container = document.getElementById("newsContainer");
-      container.innerHTML = "Đang tải...";
+    function formatTimeVN(dateStr) {
+      const d = new Date(dateStr);
+      d.setHours(d.getHours() + 7); // GMT+7
+      const options = { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric',
+                        hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false, timeZone: 'Asia/Ho_Chi_Minh' };
+      return new Intl.DateTimeFormat('vi-VN', options).format(d);
+    }
 
+    function updateCountdown() {
+      const mins = String(Math.floor(countdown / 60)).padStart(2, '0');
+      const secs = String(countdown % 60).padStart(2, '0');
+      document.getElementById("countdown").textContent = `Tự động tải lại sau: ${mins}:${secs}`;
+      countdown--;
+      if (countdown < 0) {
+        countdown = 1800;
+        const url = localStorage.getItem("newsWebhook");
+        if (url) loadArticles(url);
+      }
+    }
+
+    function saveWebhook(event) {
+      event.preventDefault();
+      const url = document.getElementById("webhook").value.trim();
+      localStorage.setItem("newsWebhook", url);
+      loadArticles(url);
+    }
+
+    function displayArticle(index) {
+      const article = articles[index];
+      if (!article) return;
+      document.getElementById("newsContainer").innerHTML = `
+        <div class="article">
+          <h2><a href="${article.link}" target="_blank">${escapeHTML(article.title)}</a></h2>
+          <small>${formatTimeVN(article.pubDate)}</small>
+          <p>${escapeHTML(article.content)}</p>
+        </div>`;
+    }
+
+    function loadArticles(url) {
       fetch(url)
         .then(res => res.json())
-        .then(articles => {
-          container.innerHTML = '';
-          articles.forEach(article => {
-            const div = document.createElement("div");
-            div.className = "article";
-            div.innerHTML = `
-              <h2><a href="${article.link}" target="_blank">${escapeHTML(article.title)}</a></h2>
-              <small>${article.pubDate}</small>
-              <p>${escapeHTML(article.content)}</p>
-            `;
-            container.appendChild(div);
-          });
+        .then(data => {
+          articles = data;
+          currentIndex = 0;
+          displayArticle(currentIndex);
         })
         .catch(err => {
-          container.innerHTML = `<p style="color:red">❌ Lỗi khi tải dữ liệu: ${err.message}</p>`;
+          document.getElementById("newsContainer").innerHTML = `<p style="color:red">❌ Lỗi khi tải: ${err.message}</p>`;
         });
     }
 
-    window.addEventListener("load", () => {
-      loadArticles(webhookUrl);
-    });
+    function prevArticle() {
+      if (articles.length === 0) return;
+      currentIndex = (currentIndex - 1 + articles.length) % articles.length;
+      displayArticle(currentIndex);
+    }
+
+    function nextArticle() {
+      if (articles.length === 0) return;
+      currentIndex = (currentIndex + 1) % articles.length;
+      displayArticle(currentIndex);
+    }
+
+function updateRealTime() {
+  const now = new Date();
+  const options = {
+    timeZone: 'Asia/Ho_Chi_Minh',
+    weekday: 'long', year: 'numeric', month: '2-digit', day: '2-digit',
+    hour: '2-digit', minute: '2-digit', second: '2-digit'
+  };
+  document.getElementById("headerTime").textContent =
+    "Tin tức tổng hợp - " + now.toLocaleString("vi-VN", options);
+}
+
+
+    // Tự động tải nếu đã lưu webhook
+window.addEventListener("load", () => {
+  let url = localStorage.getItem("newsWebhook");
+  if (!url) {
+    url = "https://script.google.com/macros/s/AKfycbzCPIQa9FR-SUxMdlEslE8GVzsdnYhcwMVY1HUgT-XKzdTXMnUMu5cNa-RVmffEJUsl/exec"; // webhook mặc định
+    localStorage.setItem("newsWebhook", url);
+  }
+  document.getElementById("webhook").value = url;
+
+  loadArticles(url); // ✅ gọi ngay khi vào
+  updateRealTime();  // thời gian thực
+  setInterval(updateRealTime, 1000);
+  setInterval(updateCountdown, 1000);
+});
+
   </script>
 </body>
 </html>
