@@ -111,7 +111,7 @@
       if (countdown <= 0) {
         document.getElementById("countdown").textContent = "🔄 Đang tải lại...";
         loadArticles();
-        countdown = 1800;
+        countdown = 900;
         return;
       }
       const m = String(Math.floor(countdown / 60)).padStart(2, '0');
@@ -123,7 +123,7 @@
     function updateRealTime() {
       const now = new Date();
       document.getElementById("headerTime").textContent =
-        "Tin tức tổng hợp - " + now.toLocaleString("vi-VN", {
+        "Tin tức mới - " + now.toLocaleString("vi-VN", {
           timeZone: 'Asia/Ho_Chi_Minh',
           weekday: 'long', year: 'numeric', month: '2-digit',
           day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit'
